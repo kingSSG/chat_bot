@@ -95,7 +95,36 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 console.error('AJAX request failed:', textStatus, errorThrown); // Log any error
             }
             });
-        }
+            sendEmail(userName,userPhone);
+            }
+
+            function sendEmail(userName,phone_no) {
+                var url = 'https://api.web3forms.com/submit';
+                var access_key = '2242a3c3-0d1d-48c7-b713-9a96ac6b1804';
+                var name = userName;
+                var email = 'suvojit.sengupta.com@gmail.com';
+                var message = 'the data hsbeeen addedd TO GOOGLRSHETS \n the name of the user is '+name+ '\n the phone number is '+phone_no;
+            
+                jQuery.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json', // Ensure the data type is JSON
+                    data: JSON.stringify({
+                        access_key: access_key,
+                        name: name,
+                        email: email,
+                        message: message
+                    }),
+                    contentType: 'application/json', // Set the content type to JSON
+                    success: function(result) {
+                        console.log(result); // Log the result on success
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('AJAX request failed:', textStatus, errorThrown); // Log any error
+                    }
+                });
+            }
+            
 
     // Initial bot message
     botReply('Hello! \n your name plese ?');
