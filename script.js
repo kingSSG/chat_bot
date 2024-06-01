@@ -20,6 +20,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
             appendMessage('bot', message);
         }, 500);
     }
+    function phonenumber(userPhone) {
+        var phoneRegex = /^[0-9]{10}$/;
+        if (!phoneRegex.test(userPhone)) {
+            botReply(`please provide a valid phone number `);
+            userPhone = message;
+            phonenumber(userPhone);
+        }
+        else 
+        {
+            return userPhone;
+        }
+
+    }
+
     function handleUserInput() {
         const message = userInput.value.trim();
         if (message === '') return;
@@ -33,6 +47,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
             step++;
         } else if (step === 1) {
             userPhone = message;
+            userPhone= phonenumber(userPhone);
+
             localStorage.setItem('userName', userName);
             localStorage.setItem('userPhone', userPhone);
             botReply(`Thank you, ${userName}. Your phone number (${userPhone}) has been saved.`);
@@ -43,8 +59,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
             
             quaries = message;
             
-            botReply(`Ok, ${userName}. Your mssage has REACHED TO ME . I will call you later. Goodbye!`);
+            botReply(`Ok, ${userName}. i got your massage . I will call you later. Goodbye!`);
             
+            save( userName,userPhone,quaries);
 
             step++;
         }
@@ -57,7 +74,29 @@ document.addEventListener('DOMContentLoaded', (event) => {
             handleUserInput();
         }
     });
+    function  save( userName,userPhone,quaries) {
+        var name = userName; // Replace with your actual data
+        var phone_no = userPhone; // Replace with your actual data
+        
+        var url = 'https://script.google.com/macros/s/AKfycbxuizjGuF6eBBKejLgKM8_LS9gTiJVlvLpoZXWzTOdDcB8l-QD2LGDHSBhyvo-fLW0/exec';
+        
+            jQuery.ajax({
+            url: url,
+            type: 'post',
+            data: {
+                name: name,
+                phone_no: phone_no,
+                massage: quaries
+            },
+            success: function(result) {
+                console.log(result); // Log the result on success
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('AJAX request failed:', textStatus, errorThrown); // Log any error
+            }
+            });
+        }
 
     // Initial bot message
-    botReply('Hello! \n can i your name?');
+    botReply('Hello! \n your name plese ?');
 });
