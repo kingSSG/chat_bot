@@ -22,6 +22,261 @@
             <button id="sendButton">Send</button>
         </div>
     </div>
-    <script src="script.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+            }
+        }
+    </script>
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // Fetch your API_KEY
+        const API_KEY = "AIzaSyAIj4tMcpydvLR2EJcpkxYNi_dn_lZ2YLI";
+
+        // Access your API key
+        const genAI = new GoogleGenerativeAI(API_KEY);
+
+        // Use a model that supports function calling, like Gemini 1.5 Pro.
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            tools: {
+                functionDeclarations: [{
+                    name: "getExchangeRate",
+                    parameters: {
+                        type: "OBJECT",
+                        description: "Get the exchange rate for currencies between countries",
+                        properties: {
+                            currencyFrom: {
+                                type: "STRING",
+                                description: "The currency to convert from.",
+                            },
+                            currencyTo: {
+                                type: "STRING",
+                                description: "The currency to convert to.",
+                            },
+                        },
+                        required: ["currencyTo", "currencyFrom"],
+                    },
+                }]
+            },
+        });
+
+        // Function to make API request
+        async function makeApiRequest(currencyFrom, currencyTo) {
+            // This hypothetical API returns a JSON such as:
+            // {"base":"USD","rates":{"SEK": 0.091}}
+            return {
+                base: currencyFrom,
+                rates: { [currencyTo]: 0.091 },
+            };
+        }
+
+        // Executable function code
+        const functions = {
+            getExchangeRate: ({ currencyFrom, currencyTo }) => {
+                return makeApiRequest(currencyFrom, currencyTo);
+            }
+        };
+
+        // GEMINI function
+        async function GEMINI(message) {
+            const chat = model.startChat();
+
+            // Send the user input to the model.
+            const result = await chat.sendMessage(message);
+
+            // For simplicity, this uses the first function call found if any.
+            const call = result.response.functionCalls()?.[0];
+
+            if (call) {
+                // Call the executable function named in the function call
+                // with the arguments specified in the function call and
+                // let it call the hypothetical API.
+                const apiResponse = await functions[call.name](call.args);
+
+                // Send the API response back to the model so it can generate
+                // a text response that can be displayed to the user.
+                const finalResult = await chat.sendMessage([{
+                    functionResponse: {
+                        name: 'getExchangeRate',
+                        response: apiResponse
+                    }
+                }]);
+
+                // Return the final response text.
+                return finalResult.response.text();
+            } else {
+                // If no function call, just return the model's response text.
+                return result.response.text();
+            }
+        }
+
+        // Event listener for button click
+        //document.getElementById('sendBtn').addEventListener('click', async () => {
+           // const userInput = document.getElementById('userInput').value;
+
+            // Call the GEMINI function with the user input and update the result
+            //const response = await GEMINI(userInput);
+           // document.getElementById('result').textContent = response;
+        //});
+    
+
+        //--------------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const chatBox = document.getElementById('chatBox');
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+        
+            let step = 0;
+            let userName = '';
+            let userPhone = '';
+        
+            function appendMessage(sender, message) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender);
+                messageElement.textContent = message;
+                chatBox.appendChild(messageElement);
+                chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+            }
+        
+            function botReply(message) {
+                setTimeout(() => {
+                    appendMessage('bot', message);
+                }, 500);
+            }
+            function phonenumber(userPhone) {
+                var phoneRegex = /^[0-9]{10}$/;
+                if (!phoneRegex.test(userPhone)) {
+                    botReply(`please provide a valid phone number `);
+                    userPhone = message;
+                    phonenumber(userPhone);
+                }
+                else 
+                {
+                    return userPhone;
+                }
+        
+            }
+        
+            async function handleUserInput() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+        
+                appendMessage('user', message);
+                userInput.value = '';
+                // add conversetions     
+                if (step === 0) {
+                    userName = message;
+                    botReply(`Nice to meet you, ${userName}! can you please provide me your phone number , so that i can call you later?`);
+                    step++;
+                } else if (step === 1) {
+                    userPhone = message;
+                    userPhone= phonenumber(userPhone);
+        
+                    localStorage.setItem('userName', userName);
+                    localStorage.setItem('userPhone', userPhone);
+                    botReply(`Thank you, ${userName}. Your phone number (${userPhone}) has been saved.`);
+                    botReply(`Do you have any questions for me or any quries?`);
+                    step++;
+                }
+                else if (step === 2) {
+                    
+                    const quaries = message+" please answer this in 20 to 30 words";
+                    
+                    botReply(`Let me think ${userName}...`);
+                    const response = await GEMINI(quaries);
+                    botReply(`So, ${response}. `);
+                    save( userName,userPhone,quaries);
+
+                    step++;
+                }
+                else if (step === 3) {
+                    
+                    const quaries = message+" please answer this in 20 to 30 words";
+                    
+                    botReply(`Let me think ${userName}...`);
+                    const response = await GEMINI(quaries);
+                    botReply(`So, ${response}. `);
+                    step++;
+                }
+                else if (step === 4) {
+                    
+                    //const quaries = message+" please answer this in 20 to 30 words";
+                    
+                    botReply(`Ok, ${userName}.. for more qutions plz contact me on 7001671409 `);
+                    //const response = await GEMINI(quaries);
+                    //botReply(`Ok, ${response}. `);
+                    step++;
+                }
+            }
+        
+            sendButton.addEventListener('click', handleUserInput);
+        
+            userInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    handleUserInput();
+                }
+            });
+            
+            function  save( userName,userPhone,quaries) {
+                var name = userName; // Replace with your actual data
+                var phone_no = userPhone; // Replace with your actual data
+                
+                var url = 'https://script.google.com/macros/s/AKfycbxuizjGuF6eBBKejLgKM8_LS9gTiJVlvLpoZXWzTOdDcB8l-QD2LGDHSBhyvo-fLW0/exec';
+                
+                    jQuery.ajax({
+                    url: url,
+                    type: 'post',
+                    data: {
+                        name: name,
+                        phone_no: phone_no,
+                        massage: quaries
+                    },
+                    success: function(result) {
+                        console.log(result); // Log the result on success
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error('AJAX request failed:', textStatus, errorThrown); // Log any error
+                    }
+                    });
+        
+                    sendEmail(userName,userPhone);
+                    }
+        
+                    function sendEmail(userName,phone_no) {
+                        var url = 'https://api.web3forms.com/submit';
+                        var access_key = '2242a3c3-0d1d-48c7-b713-9a96ac6b1804';
+                        var name = userName;
+                        var email = 'suvojit.sengupta.com@gmail.com';
+                        var message = 'the data hsbeeen addedd TO GOOGLRSHETS \n the name of the user is '+name+ '\n the phone number is '+phone_no;
+                    
+                        jQuery.ajax({
+                            url: url,
+                            type: 'POST',
+                            dataType: 'json', // Ensure the data type is JSON
+                            data: JSON.stringify({
+                                access_key: access_key,
+                                name: name,
+                                email: email,
+                                message: message
+                            }),
+                            contentType: 'application/json', // Set the content type to JSON
+                            success: function(result) {
+                                console.log(result); // Log the result on success
+                            },
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                console.error('AJAX request failed:', textStatus, errorThrown); // Log any error
+                            }
+                        });
+                    }
+                    
+        
+            // Initial bot message
+            botReply('Hello! \n your name plese ?');
+        });
+        
+    </script>
 </body>
 </html>
